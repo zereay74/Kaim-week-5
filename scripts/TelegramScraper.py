@@ -39,7 +39,7 @@ class TelegramScraper:
 
             # Iterate over messages
             message_count = 0
-            async for message in self.client.iter_messages(entity, limit=70000):
+            async for message in self.client.iter_messages(entity, limit=10000):
                 media_path = None
                 if message.media and hasattr(message.media, 'photo'):
                     # Save photos with unique filenames
