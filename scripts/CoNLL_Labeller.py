@@ -33,7 +33,7 @@ class CoNLLLabeler:
             ])),
             "B-LOC": list(set([
                 'Addis Ababa', 'አዲስ አበባ', 'Merkato', 'መርካቶ', 'Raguel', 'ራጉኤል', 'Anwar Meskid', 'አንዋር መስኪድ', 'Bole', 'ቦሌ',
-                'Megeneagna', 'መገናኛ', 'Piyasa', 'ፒያሳ', 'ሀረር', 'አዳማ', 'ጎንደር', 'ደብረብርን', 'ባህር ዳር', 'ደሴ', 'ጎንደር በር', 'ጎጃም በረንዳ', 'አውቶብስ ተራ', 'ይርጋ ሀይሌ'
+                'Megeneagna', 'መገናኛ', 'Piyasa', 'ፒያሳ', 'ሀረር', 'አዳማ', 'ጎንደር', 'ደብረብርን', 'ባህር ዳር', 'ደሴ'
             ])),
             "I-LOC": list(set([
                 'Abeba', 'አበባ', 'መስኪድ'
@@ -49,10 +49,9 @@ class CoNLLLabeler:
         Dynamically generate I-PRICE entities for numeric price patterns followed by valid currency symbols.
         """
         patterns = [
-            r'\d+[ብር]', r'\d+ETB', r'\d+\$', r'\d+Birr'
+            r'\b\d+ብር\b', r'\b\d+ETB\b', r'\b\d+\$\b', r'\b\d+Birr\b'
         ]
-        for pattern in patterns:
-            self.entities["I-PRICE"].append(pattern)
+        self.entities["I-PRICE"].extend(patterns)
 
     def label_text(self, text):
         """
@@ -69,15 +68,25 @@ class CoNLLLabeler:
                 for entity in entity_list:
                     entity_tokens = entity.split()
                     for i in range(len(tokens)):
-                        if tokens[i:i + len(entity_tokens)] == entity_tokens:
-                            labels[i] = f"B-{entity_type.split('-')[1]}"
-                            for j in range(1, len(entity_tokens)):
-                                labels[i + j] = f"I-{entity_type.split('-')[1]}"
+                        if [t.lower() for t in tokens[i:i + len(entity_tokens)]] == [e.lower() for e in entity_tokens]:
+                            if all(label == "O" for label in labels[i:i + len(entity_tokens)]):
+                                labels[i] = f"B-{entity_type.split('-')[1]}"
+                                for j in range(1, len(entity_tokens)):
+                                    labels[i + j] = f"I-{entity_type.split('-')[1]}"
             else:  # Handle I-PRICE patterns
                 for pattern in entity_list:
                     for i, token in enumerate(tokens):
                         if re.match(pattern, token):
-                            labels[i] = "I-PRICE"
+                            if labels[i] == "O":
+                                labels[i] = "I-PRICE"
+
+        # Remove duplicate labels
+        seen_labels = {}
+        for i, token in enumerate(tokens):
+            if token.lower() in seen_labels:
+                labels[i] = "O"
+            else:
+                seen_labels[token.lower()] = labels[i]
 
         return list(zip(tokens, labels))
 
@@ -108,6 +117,9 @@ class CoNLLLabeler:
         )
         labeled_df.to_csv(self.output_csv, index=False, encoding='utf-8-sig')
 
+
+
+   
 
 '''
 if __name__ == '__main__':
