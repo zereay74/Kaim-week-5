@@ -7,3 +7,9 @@ seaborn
 logging
 scipy
 spacy
+transformers
+datasets
+enviroments
+shap
+seqeval
+lime
